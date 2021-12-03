@@ -1,6 +1,6 @@
 ---
 title: 'STAT 471: Homework 5'
-author: 'Name(s)'
+author: 'Ashley Clarke'
 date: 'Due: December 8, 2021 at 11:59pm'
 output:
   bookdown::pdf_document2:
@@ -39,6 +39,7 @@ In accordance with this policy,
 -Zach Bradlow and Sarah Hu
 
 *Please list what external references you consulted (e.g. articles, books, or websites):*
+- https://towardsdatascience.com/understanding-and-calculating-the-number-of-parameters-in-convolution-neural-networks-cnns-fc88790d530d
 
 ## Writeup {-}
 
@@ -129,7 +130,6 @@ y_test <- to_categorical(g_test, num_classes)
 
 i. How many observations in each class are there in the training data? (Kable output optional.)
 ```{r num-observations}
-
 observations <- y_train %>% 
   colSums(na.rm = FALSE, dims = 1)
 
@@ -179,7 +179,7 @@ ii. Print the summary of the model. How many total parameters are there? How doe
 ```{r summary-model-lr}
 summary(model_lr)
 ```
-**Along with intercepts (referred to as biases in the deep-learning community) this network has 7850 parameters (referred to as weights). The input layer has p = 784 units and the output layer has 10 units. 784 is equal to number of image rows and number of image columns. The output layer produces 10 responses instead of one. Thus, the first step is to compute ten different linear models similar to our single model. The matrix stores 10 x 784 elements for the output layer. Also, There are 785 rather than 784 because we must account for the intercept or bias term. Therefore, there are 7850 parameters**
+**Along with intercepts (referred to as biases in the deep-learning community) this network has 7850 parameters (referred to as weights). The input layer has p = 784 units and the output layer has 10 units. 784 is equal to number of image rows times the number of image columns. The output layer produces 10 responses instead of one. Thus, the first step is to compute ten different linear models similar to our single model. The matrix stores 10 x 784 elements for the output layer. Also, There are 785 rather than 784 because we must account for the intercept or bias term. Therefore, there are 7850 parameters**
 
 iii. Train the model for 10 epochs, using a batch size of 128, and a validation split of 20%. Save the model to `model_lr.h5` and its history to `model_lr_hist.RDS`, and then set this code chunk to `eval = FALSE` to avoid recomputation. How many total stochastic gradient steps were taken while training this model, and how did you arrive at this number? Based on the output printed during training, roughly how many milliseconds did each stochastic gradient step take?
 ```{r train-model-lr, eval = FALSE}
@@ -235,7 +235,7 @@ ii. Print the summary of the model. How many total parameters are there? How man
 summary(model_nn)
 ```
 
-**There are 242,762 total parameters The input layer has p = 784 units, the three hidden layers K1 = 256, K2 = 128 units, and K3 = 56 respectively, and the output layer 10 units. 784 is equal to number of image rows and number of image columns. Along with intercepts (referred to as biases in the deep-learning community) this network has 242,762 parameters (referred to as weights). The first layer has 785 x 256 elements. There are 785 rather than 784 because we must account for the intercept or bias term. The second layer has 257 x 128 elements becuase the first layer feeds into the second layer via the matrix weights. Lastly, the third layer has 129 x 64 elements. The output layer produces 10 responses instead of one. Thus, the first step is to compute ten different linear models similar to our single model. The matrix stores 10 x 65 elements for the output layer. Added together, all of the layers produce 200,960 + 32,896 + 8256 + 650 parameters, which is equal to 242,762**
+**There are 242,762 total parameters The input layer has p = 784 units, the three hidden layers K1 = 256, K2 = 128 units, and K3 = 56 respectively, and the output layer 10 units. 784 is equal to number of image rows time the number of image columns. Along with intercepts (referred to as biases in the deep-learning community) this network has 242,762 parameters (referred to as weights). The first layer has 785 x 256 elements. There are 785 rather than 784 because we must account for the intercept or bias term. The second layer has 257 x 128 elements becuase the first layer feeds into the second layer via the matrix weights. Lastly, the third layer has 129 x 64 elements. The output layer produces 10 responses instead of one. Thus, the first step is to compute ten different linear models similar to our single model. The matrix stores 10 x 65 elements for the output layer. Added together, all of the layers produce 200,960 + 32,896 + 8256 + 650 parameters, which is equal to 242,762**
 
 iii. Train the model using 15 epochs, a batch size of 128, and a validation split of 0.2. Save the model to `model_nn.h5` and its history to `model_nn_hist.RDS`, and then set this code chunk to `eval = FALSE` to avoid recomputation. Based on the output printed during training, roughly how many milliseconds did each stochastic gradient step take?
 
@@ -252,7 +252,6 @@ save_model_hdf5(model_nn, "model_nn.h5")
 # save history
 saveRDS(model_nn$history$history, "model_nn_hist.RD")
 ```
-**DO NOT KNOW**
 **According to the output, each stochastic gradient step took roughly 2 milliseconds**
 
 iv. Load the model and its history from the files saved in part iii. Create a plot of the training history. 
@@ -268,17 +267,145 @@ plot_model_history(model_nn_hist)
 ## Convolutional neural network
 
 i. Define a `keras_model_sequential` object called `model_cnn` for a convolutional neural network with a convolutional layer with 32 $3 \times 3$ filters, followed by a convolutional layer with 64 $3 \times 3$ filters, followed by a max-pooling step with $2 \times 2$ pool size with 25% dropout, followed by a fully-connected layer with 128 units and 50% dropout, followed by a softmax output layer. All layers except the output layer should have `relu` activations. Compile the model using the `categorical_crossentropy` loss, the `adadelta` optimizer, and the `accuracy` metric.
+```{r model-cnn"}
+model_cnn <- keras_model_sequential() %>%
+  layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu',
+                input_shape = c(img_rows, img_cols, 1)) %>% 
+  layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>% 
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
+  layer_dropout(rate = 0.25) %>% 
+  layer_flatten() %>% 
+  layer_dense(units = 128, activation = 'relu') %>% 
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = num_classes, activation = 'softmax')
+
+model_cnn %>% compile(loss = "categorical_crossentropy",
+                     optimizer = optimizer_adadelta(), 
+                     metrics = c("accuracy")
+                     )
+```
+
 
 ii. Print the summary of the model. How many total parameters are there? How many parameters correspond to the connections between the first and second convolutional layers? How does this number follow from the architecture of the neural network?
+```{r cnn-summary}
+summary(model_cnn)
+```
+
+**There are 1,218,634 paramenters. Input layer has nothing to learn, at it’s core, what it does is just provide the input image’s shape. Thus, number of parameters = 0. Parameters in the CONV layer is: ((shape of width of filter x shape of height filter x number of filters in the previous layer+1) x number of filters) = (((3x3x3)+1) x 64) = 640. Paramenters in the next CONV layer are equal to ((3x3x64)+1)x64 = 36928. For the pooling layer, there are no learnable parameters because all it does is calculate a specific number. Therefore, there is no backprop learning involved. The number of parameters = 0. Parameters in the fully connected layer is caluclated by ((current layer c x previous layer p)+1 x c) = (128 x 9216) + 1 x 128 = 1179776. The final layer is calculated by ((current layer c x previous layer p)+1 x c). Since this is the last layer, (10 x 128) + 1 x 10 = 1290. When all of the parameters are summed together, the total is equal to 1,218,634**
 
 iii. Train the model using 8 epochs, a batch size of 128, and a validation split of 0.2. Save the model to `model_cnn.h5` and its history to `model_cnn_hist.RDS`, and then set this code chunk to `eval = FALSE` to avoid recomputation. Based on the output printed during training, roughly how many milliseconds did each stochastic gradient step take?
+```{r train-cnn, eval = FALSE}
+model_cnn %>% 
+  fit(x_train,                  # supply training features
+      y_train,                  # supply training responses
+      epochs = 8,               # 8 epoch cycles  
+      batch_size = 128,         # 128 batch size
+      validation_split = 0.2)   # use 20% of the training data for validation
+
+# save model
+save_model_hdf5(model_cnn, "model_cnn.h5")
+# save history
+saveRDS(model_cnn$history$history, "model_cnn_hist.RDS")
+```
+
+**Each stochastic gradient steep took roughly 155 ms**
 
 iv. Load the model and its history from the files saved in part iii. Create a plot of the training history. 
+```{r training-hist-cnn, fig.cap = "Validation loss curve based on training history for onvolutional neural network", out.width = "75%", fig.align = "center", fig.pos = "H"}
+# load model
+model_cnn = load_model_hdf5("model_cnn.h5")
+# load history
+model_cnn_hist = readRDS("model_cnn_hist.RDS")
+# plot training history
+plot_model_history(model_cnn_hist)
+```
 
 # Evaluation 
 
 i. Evaluate the test accuracy for each of the three trained neural network models. Output this information in a table, along with the number of layers, number of parameters, and milliseconds per stochastic gradient descent step. Also include a row in the table for human performance. Compare and contrast the three neural networks and human performance based on this table.
+```{r test-accurarcy}
+# LR: get predicted classes
+lr_predictions = model_lr %>% predict(x_test) %>% k_argmax() %>% as.integer() 
+# NN: get predicted classes
+nn_predictions = model_nn %>% predict(x_test) %>% k_argmax() %>% as.integer() 
+# CNN: get predicted classes
+cnn_predictions = model_cnn %>% predict(x_test) %>% k_argmax() %>% as.integer() 
+
+# LR: test accuracy
+lr_accuracy = mean(lr_predictions == g_test)
+# : test accuracy
+nn_accuracy = mean(nn_predictions   == g_test)
+# CNN: test accuracy
+cnn_accuracy = mean(cnn_predictions == g_test)
+
+tibble(lr_accuracy, nn_accuracy, cnn_accuracy) %>%
+  kable(format = "latex", row.names = NA,
+                        booktabs = TRUE,
+                        digits = 3,
+                        col.names = c("Multi-class Logistic Regression",
+                                      "Fully Connected Neural Net", 
+                                      "Convolutional Neural Net"),
+                        caption = "Test Accuracy Across Three Trained Neural Network Models") %>%
+  kable_styling(position = "center") %>%
+  kable_styling(latex_options = "HOLD_position")
+```
 
 ii. Plot confusion matrices for each of the three methods. For each method, what class gets misclassified most frequently? What is most frequent wrong label for this class?
+```{r confusion matrix, fig.cap = "Confusion Matrices Across Three Trained Neural Network Models: Multi-class Logistic Regression, Fully Connected Neural Net, and Convolutional Neural Net", out.width = "90%", fig.align = "center", fig.pos = "H"}
+#LR confusion matrix
+lr_confusion_matrix = plot_confusion_matrix(predicted_responses = lr_predictions, 
+                      actual_response = g_test) 
+lr_confusion_matrix = lr_confusion_matrix + 
+  ggtitle("Multi-class Logistic Regression") + 
+  theme(plot.title = element_text(face = "bold", size = 8))
+
+#NN confusion matrix
+nn_confusion_matrix = plot_confusion_matrix(predicted_responses = nn_predictions, 
+                      actual_response = g_test)
+nn_confusion_matrix = nn_confusion_matrix + 
+  ggtitle("Fully Connected Neural Net")  + 
+  theme(plot.title = element_text(face = "bold", size = 8))
+
+#CNN confusion matrix
+cnn_confusion_matrix = plot_confusion_matrix(predicted_responses = cnn_predictions, 
+                      actual_response = g_test)
+cnn_confusion_matrix = cnn_confusion_matrix + 
+  ggtitle("Convolutional Neural Net")  + 
+  theme(plot.title = element_text(face = "bold", size = 9))
+
+plot_grid(lr_confusion_matrix, nn_confusion_matrix, cnn_confusion_matrix, nrow = 1)
+
+```
+
 
 iii. Consider CNN's most frequently misclassified class. What are the three most common incorrect classifications for this class? Extract one image representing each of these three type of misclassifications, and plot these side by side (titled with their predicted labels). Would you have gotten these right?
+
+```{r, fig.cap = "Three most common incorrect classifications where the image was incorrectly classifed when it should have been classifed as a shirt", out.width = "90%", fig.align = "center", fig.pos = "H"}
+top_misclass =  cnn_confusion_matrix$data %>%
+  filter(!(predicted_response == actual_response))  %>% 
+  group_by(actual_response) %>% 
+  summarise(num_misclass = sum(n)) %>%
+  arrange(desc(num_misclass)) %>% 
+  head(1) %>% select(actual_response) %>% pull() %>% as.integer()
+
+misclass =  cnn_confusion_matrix$data %>%
+  filter(!(predicted_response == actual_response), actual_response == top_misclass )  %>% 
+  arrange(desc(n)) %>% select(predicted_response) %>% head(3) %>% pull() %>% as.integer()
+
+#Plot highest misclass erorr
+misclass_1 = which(cnn_predictions == misclass[1] & g_test == top_misclass)
+idx_1 = misclass_1[1]
+p1 <-plot_grayscale(x_test[idx_1,,,], misclass[1], class_names)
+#Plot second highest misclass erorr
+misclass_2 = which(cnn_predictions == misclass[2] & g_test == top_misclass)
+idx_2 = misclass_2[1]
+p2 <-plot_grayscale(x_test[idx_2,,,], misclass[2], class_names)
+#Plot third highest misclass erorr
+misclass_3 = which(cnn_predictions == misclass[3] & g_test == top_misclass)
+idx_3 = misclass_3[1]
+p3 <-plot_grayscale(x_test[idx_3,,,], misclass[3], class_names)
+
+plot_grid(p1, p2, p3, nrow = 1)
+```
+
+**CNN's current most misclassifed class is class 6, which correspodns to the "shirt" class. Most commonly the model predicted that shirts (6) are actually "T-shirt/top"(0), which makes sense because these items look very similar even to the human eye. The three most common misclassifications are predicting "T-shirt/top"(0) when it is actually a "Shirt" (6), predicting "Coat" (4), when the image is a shirt, and predicting "Pullover" (2) when the image is a "Shirt" (6). I see how all of the images could be classifed as what they are predicted to be. I also would have classifed image 1 as a top and image 2 as a coat. However, I would have classifed image 3 correctly.**
